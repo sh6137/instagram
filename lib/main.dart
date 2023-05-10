@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'style.dart' as style;
 import 'package:http/http.dart' as http;
@@ -5,12 +6,17 @@ import 'dart:convert';
 import 'package:flutter/rendering.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 
 void main() {
   runApp(
-    MaterialApp(
-      theme: style.theme,
-      home: MyApp(),
+    ChangeNotifierProvider(
+      create: (c) => Store1(),
+      child: MaterialApp(
+        theme: style.theme,
+        home: MyApp(),
+      ),
     ),
   );
 }
@@ -27,6 +33,13 @@ class _MyAppState extends State<MyApp> {
   var data = [];
   var userImage;
   var userContent;
+
+  saveData() async {
+    var storage = await SharedPreferences.getInstance();
+    storage.setString('map', 'john');
+    var result = storage.get('name');
+    print(result);
+  }
 
   addMyData() {
     var myData = {
@@ -67,6 +80,7 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
+    // saveData();
     getData();
   }
 
@@ -87,7 +101,10 @@ class _MyAppState extends State<MyApp> {
               }
               Navigator.push(context, MaterialPageRoute(builder: (context) {
                 return Upload(
-                    userImage: userImage, setUserContent: setUserContent,addMyData : addMyData,);
+                  userImage: userImage,
+                  setUserContent: setUserContent,
+                  addMyData: addMyData,
+                );
               }));
             },
             icon: Icon(Icons.add_box_outlined),
@@ -152,6 +169,7 @@ class _HomeState extends State<Home> {
           itemCount: widget.data.length,
           itemBuilder: (context, i) {
             return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 widget.data[i]['image'].runtimeType == String
                     ? Image.network(widget.data[i]['image'])
@@ -163,6 +181,13 @@ class _HomeState extends State<Home> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      GestureDetector(
+                        child: Text(widget.data[i]['user']),
+                        onTap: () {
+                          Navigator.push(context,
+                              CupertinoPageRoute(builder: (c) => Profile() ));
+                        },
+                      ),
                       Text("좋아요 ${widget.data[i]['likes'].toString()}"),
                       Text(widget.data[i]['user']),
                       Text(widget.data[i]['content']),
@@ -214,6 +239,33 @@ class Upload extends StatelessWidget {
                 Navigator.pop(context);
               },
               icon: Icon(Icons.close)),
+        ],
+      ),
+    );
+  }
+}
+
+//state 보관함
+class Store1 extends ChangeNotifier{
+  var name = 'john Kim';
+  changeName(){
+    name = 'john Park';
+    notifyListeners();
+  }
+}
+
+class Profile extends StatelessWidget {
+  const Profile({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(context.watch<Store1>().name),),
+      body: Column(
+        children: [
+          ElevatedButton(onPressed: (){
+            context.read<Store1>().changeName();
+          }, child: Text('버튼'))
         ],
       ),
     );
