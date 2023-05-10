@@ -3,6 +3,8 @@ import 'style.dart' as style;
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter/rendering.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 void main() {
   runApp(
@@ -23,6 +25,29 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   var tab = 0;
   var data = [];
+  var userImage;
+  var userContent;
+
+  addMyData() {
+    var myData = {
+      'id': data.length,
+      'image': userImage,
+      'likes': 5,
+      'date': 'July 25',
+      'content': userContent,
+      'liked': false,
+      'user': 'John Kim'
+    };
+    setState(() {
+      data.insert(0, myData);
+    });
+  }
+
+  setUserContent(a) {
+    setState(() {
+      userContent = a;
+    });
+  }
 
   addData(a) {
     setState(() {
@@ -52,12 +77,24 @@ class _MyAppState extends State<MyApp> {
         title: Text('Instagram'),
         actions: [
           IconButton(
-            onPressed: () {},
+            onPressed: () async {
+              var picker = ImagePicker();
+              var image = await picker.pickImage(source: ImageSource.gallery);
+              if (image != null) {
+                setState(() {
+                  userImage = File(image.path);
+                });
+              }
+              Navigator.push(context, MaterialPageRoute(builder: (context) {
+                return Upload(
+                    userImage: userImage, setUserContent: setUserContent,addMyData : addMyData,);
+              }));
+            },
             icon: Icon(Icons.add_box_outlined),
           ),
         ],
       ),
-      body: [Home(data: data, addData : addData), Text('샵')][tab],
+      body: [Home(data: data, addData: addData), Text('샵')][tab],
       bottomNavigationBar: BottomNavigationBar(
         showSelectedLabels: false,
         showUnselectedLabels: false,
@@ -77,7 +114,7 @@ class _MyAppState extends State<MyApp> {
 }
 
 class Home extends StatefulWidget {
-  const Home({Key? key, this.data ,this.addData}) : super(key: key);
+  const Home({Key? key, this.data, this.addData}) : super(key: key);
   final addData;
   final data;
 
@@ -89,7 +126,8 @@ class _HomeState extends State<Home> {
   var scroll = ScrollController();
 
   getMore() async {
-    var result = await http.get(Uri.parse('https://codingapple1.github.io/app/more2.json'));
+    var result = await http
+        .get(Uri.parse('https://codingapple1.github.io/app/more2.json'));
     var result2 = jsonDecode(result.body);
     print(result2);
     widget.addData(result2);
@@ -115,7 +153,9 @@ class _HomeState extends State<Home> {
           itemBuilder: (context, i) {
             return Column(
               children: [
-                Image.network(widget.data[i]['image']),
+                widget.data[i]['image'].runtimeType == String
+                    ? Image.network(widget.data[i]['image'])
+                    : Image.file(widget.data[i]['image']),
                 Container(
                   constraints: BoxConstraints(maxWidth: 600),
                   padding: EdgeInsets.all(20),
@@ -135,5 +175,47 @@ class _HomeState extends State<Home> {
     } else {
       return CircularProgressIndicator();
     }
+  }
+}
+
+class Upload extends StatelessWidget {
+  const Upload({Key? key, this.userImage, this.setUserContent, this.addMyData})
+      : super(key: key);
+  final userImage;
+  final setUserContent;
+  final addMyData;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        actions: [
+          IconButton(
+            onPressed: () {
+              addMyData();
+              Navigator.pop(context);
+            },
+            icon: Icon(Icons.send),
+          ),
+        ],
+      ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Image.file(userImage),
+          Text('이미지업로드 화면'),
+          TextField(
+            onChanged: (text) {
+              setUserContent(text);
+            },
+          ),
+          IconButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              icon: Icon(Icons.close)),
+        ],
+      ),
+    );
   }
 }
