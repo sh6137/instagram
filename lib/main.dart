@@ -11,8 +11,12 @@ import 'package:provider/provider.dart';
 
 void main() {
   runApp(
-    ChangeNotifierProvider(
-      create: (c) => Store1(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (c) => Store1(),),
+        ChangeNotifierProvider(create: (c) => Store2(),),
+      ],
+
       child: MaterialApp(
         theme: style.theme,
         home: MyApp(),
@@ -185,7 +189,7 @@ class _HomeState extends State<Home> {
                         child: Text(widget.data[i]['user']),
                         onTap: () {
                           Navigator.push(context,
-                              CupertinoPageRoute(builder: (c) => Profile() ));
+                              CupertinoPageRoute(builder: (c) => Profile()));
                         },
                       ),
                       Text("좋아요 ${widget.data[i]['likes'].toString()}"),
@@ -244,12 +248,34 @@ class Upload extends StatelessWidget {
     );
   }
 }
+class Store2 extends ChangeNotifier {
+  var name = 'john Kim';
+}
+
 
 //state 보관함
-class Store1 extends ChangeNotifier{
-  var name = 'john Kim';
-  changeName(){
-    name = 'john Park';
+class Store1 extends ChangeNotifier {
+  var follower = 0;
+  var friend = false;
+  var profileImage = [];
+
+  getData() async{
+    var result = await http.get(Uri.parse('https://codingapple1.github.io/app/profile.json'));
+    var result2 = jsonDecode(result.body);
+    profileImage = result2;
+
+    print(profileImage);
+    notifyListeners();
+  }
+
+  addFollower() {
+    if (friend == false) {
+      follower++;
+      friend = true;
+    } else {
+      follower--;
+      friend = false;
+    }
     notifyListeners();
   }
 }
@@ -260,12 +286,29 @@ class Profile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(context.watch<Store1>().name),),
-      body: Column(
+      appBar: AppBar(
+        title: Text(context.watch<Store2>().name),
+      ),
+      body: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          ElevatedButton(onPressed: (){
-            context.read<Store1>().changeName();
-          }, child: Text('버튼'))
+          CircleAvatar(
+            radius: 30,
+            backgroundColor: Colors.grey,
+          ),
+          Text('팔로워 ${context.watch<Store1>().follower} 명'),
+          ElevatedButton(
+            onPressed: () {
+              context.read<Store1>().addFollower();
+            },
+            child: Text('팔로우'),
+          ),
+          ElevatedButton(
+              onPressed: (){
+                context.read<Store1>().getData();
+              },
+              child: Text('사진가져오기')
+          )
         ],
       ),
     );
